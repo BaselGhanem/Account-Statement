@@ -1,1 +1,201 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>مولّد كشوف حساب الصيدليات</title>
+  <link rel="stylesheet" href="styles.css" />
 
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Excel to PDF Statement Generator</p>
+        <h1>مولّد كشوف حساب الصيدليات</h1>
+        <p class="hero-text">
+          ارفع ملف كشف الحساب، اربط الأعمدة مرة واحدة إذا تغيّرت أسماؤها، ثم جهّز كشف PDF نصي قابل للتحديد لكل صيدلية حسب المندوب المختار.
+        </p>
+      </div>
+      <div class="hero-badge">
+        <span>PDF</span>
+        <strong>PDF نصي قابل للتحديد</strong>
+      </div>
+    </section>
+
+    <section class="panel upload-panel">
+      <div class="section-title">
+        <div>
+          <h2>رفع كشف الحساب</h2>
+          <p>يدعم ملفات Excel بصيغة .xlsx و .xls</p>
+        </div>
+      </div>
+
+      <div id="uploadZone" class="upload-zone" tabindex="0" role="button" aria-label="رفع ملف Excel">
+        <input id="fileInput" type="file" accept=".xlsx,.xls" hidden />
+        <div class="upload-icon">↑</div>
+        <h3>اسحب الملف هنا أو اضغط للاختيار</h3>
+        <p>سيتم قراءة الملف محلياً من المتصفح بدون رفعه لأي خادم.</p>
+      </div>
+
+      <div id="fileInfo" class="file-info is-hidden"></div>
+      <div id="statusMessage" class="status-message is-hidden"></div>
+      <div id="validationBox" class="validation-box is-hidden"></div>
+    </section>
+
+    <section id="columnMapperPanel" class="panel mapper-panel is-hidden">
+      <div class="section-title actions-title">
+        <div>
+          <h2>ربط الأعمدة</h2>
+          <p>إذا تغيّر اسم أي عمود لاحقاً، اختَر العمود الصحيح من القوائم ثم اضغط تطبيق. هذا يجعل البرنامج يقبل أي أسماء أعمدة.</p>
+        </div>
+        <button id="applyMappingBtn" class="btn btn-primary" type="button">تطبيق ربط الأعمدة</button>
+      </div>
+      <div id="mappingGrid" class="mapping-grid"></div>
+      <div class="mapping-note">
+        المطلوب للتشغيل: <strong>القيمة</strong> + <strong>المندوب</strong> + <strong>الحساب أو الاسم</strong>. باقي الأعمدة تُعرض في الكشف عند ربطها.
+      </div>
+    </section>
+
+    <section class="panel filters-panel">
+      <div class="section-title">
+        <div>
+          <h2>الفلاتر</h2>
+          <p>عند اختيار مندوب، يتم تجهيز كل صيدلية تابعة له في صفحة طباعة مستقلة. إذا اخترت صيدلية، يتم تجهيزها وحدها.</p>
+        </div>
+        <button id="resetBtn" class="btn btn-ghost" type="button">إعادة ضبط الفلاتر</button>
+      </div>
+
+      <div id="activeFiltersBar" class="active-filters-bar">
+        <span>الفلاتر النشطة</span>
+        <strong id="activeFiltersText">لا يوجد</strong>
+      </div>
+
+      <div class="filters-grid">
+        <div class="field salesman-field">
+          <span>اختر مندوبًا أو أكثر</span>
+          <div id="salesmanMultiSelect" class="multi-select">
+            <button id="salesmanTrigger" class="multi-select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+              <span id="salesmanTriggerText">كل المندوبين</span>
+              <span class="chevron">⌄</span>
+            </button>
+            <div id="salesmanDropdown" class="multi-select-dropdown is-hidden">
+              <div class="multi-select-toolbar">
+                <input id="salesmanSearch" type="search" placeholder="ابحث باسم المندوب" />
+                <div class="multi-select-actions">
+                  <button id="selectAllSalesmen" type="button">تحديد الكل</button>
+                  <button id="clearSalesmen" type="button">مسح</button>
+                </div>
+              </div>
+              <div id="salesmanOptions" class="multi-select-options" role="listbox" aria-multiselectable="true"></div>
+            </div>
+          </div>
+          <div id="selectedSalesmenChips" class="selection-chips"></div>
+        </div>
+
+        <label class="field">
+          <span>اختر الصيدلية</span>
+          <select id="customerFilter">
+            <option value="">كل الصيدليات</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>بحث باسم الصيدلية أو الحساب</span>
+          <input id="customerSearch" type="search" placeholder="اكتب اسم الصيدلية أو رقم الحساب" />
+        </label>
+
+        <label class="field">
+          <span>من تاريخ</span>
+          <input id="dateFrom" type="date" />
+        </label>
+
+        <label class="field">
+          <span>إلى تاريخ</span>
+          <input id="dateTo" type="date" />
+        </label>
+      </div>
+    </section>
+
+    <section class="panel preview-panel">
+      <div class="section-title actions-title">
+        <div>
+          <h2>معاينة الكشف</h2>
+          <p>راجع الصيدليات والحركات قبل تنزيل PDF.</p>
+        </div>
+        <div class="preview-actions">
+          <button id="printCurrentBtn" class="btn btn-ghost" type="button">طباعة الصيدلية الحالية</button>
+          <button id="exportPdfBtn" class="btn btn-primary" type="button">طباعة / حفظ PDF</button>
+        </div>
+      </div>
+
+      <div id="summaryCards" class="summary-grid">
+        <article class="summary-card">
+          <span>عدد الصيدليات</span>
+          <strong>0</strong>
+        </article>
+        <article class="summary-card">
+          <span>عدد الصفوف</span>
+          <strong>0</strong>
+        </article>
+        <article class="summary-card">
+          <span>إجماليات التقرير</span>
+          <strong>0</strong>
+        </article>
+        <article class="summary-card">
+          <span>المندوب المختار</span>
+          <strong>كل المندوبين</strong>
+        </article>
+      </div>
+
+      <div class="preview-layout">
+        <aside class="customer-list-panel">
+          <div class="mini-title">
+            <h3>الصيدليات المشمولة</h3>
+            <span id="includedCount">0</span>
+          </div>
+          <div id="customerList" class="customer-list">
+            <div class="empty-state">لم يتم رفع ملف بعد.</div>
+          </div>
+        </aside>
+
+        <section class="statement-preview">
+          <div id="statementHeader" class="statement-header">
+            <div>
+              <p>كشف حساب الصيدلية</p>
+              <h3>لا توجد بيانات</h3>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Document Date</th>
+                  <th>Type</th>
+                  <th>القيمة</th>
+                  <th>تاريخ الاستحقاق</th>
+                  <th>Month</th>
+                  <th>Reference</th>
+                </tr>
+              </thead>
+              <tbody id="transactionsBody">
+                <tr>
+                  <td colspan="6" class="empty-cell">لا توجد بيانات للعرض.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="customerTotal" class="customer-total">
+            إجماليات التقرير: <strong>لا يوجد</strong>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
