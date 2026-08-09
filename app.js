@@ -1273,17 +1273,80 @@ async function exportPdf() {
     return;
   }
 
+  if (typeof html2pdf === "undefined") {
+    showStatus("error", "مكتبة إنشاء PDF غير محملة. تحقق من اتصال الإنترنت ثم أعد المحاولة.");
+    return;
+  }
+
+  const originalLabel = ui.exportPdfBtn.innerHTML;
+
   try {
     ui.exportPdfBtn.disabled = true;
-    showStatus("warning", "جاري تجهيز ملف PDF للطباعة...");
+    ui.exportPdfBtn.classList.add("is-loading");
+    ui.exportPdfBtn.innerHTML = `<span class="btn-spinner" aria-hidden="true"></span><span>جاري تجهيز PDF...</span>`;
+    showStatus("warning", "جاري تجهيز ملف PDF بحجم A4...");
 
-    await printGroups(groups, buildPdfFilename());
+    await downloadGroupsPdf(groups, buildPdfFilename());
 
-    showStatus("success", "تم تجهيز ملف PDF. اختر Save as PDF من نافذة الطباعة.");
+    showStatus("success", "تم تنزيل ملف PDF بحجم A4 بنجاح.");
   } catch (error) {
-    showStatus("error", error.message || "تعذر تجهيز ملف PDF للطباعة.");
+    console.error(error);
+    showStatus("error", error.message || "تعذر إنشاء ملف PDF.");
   } finally {
+    ui.exportPdfBtn.innerHTML = originalLabel;
+    ui.exportPdfBtn.classList.remove("is-loading");
     ui.exportPdfBtn.disabled = !state.currentGroups.length;
+  }
+}
+
+async function downloadGroupsPdf(groups, filename) {
+  const exportDate = formatDateDisplay(new Date());
+  const pages = buildPdfPages(groups);
+  const printableDocument = buildPrintableDocument(pages, exportDate, filename);
+  const parsedDocument = new DOMParser().parseFromString(printableDocument, "text/html");
+  const renderHost = document.createElement("div");
+  const printStyles = document.createElement("style");
+
+  renderHost.className = "pdf-render-host";
+  renderHost.setAttribute("aria-hidden", "true");
+  renderHost.innerHTML = parsedDocument.body.innerHTML;
+  printStyles.textContent = parsedDocument.querySelector("style").textContent;
+
+  document.head.appendChild(printStyles);
+  document.body.appendChild(renderHost);
+
+  try {
+    await waitForRender();
+
+    await html2pdf()
+      .set({
+        margin: 0,
+        filename,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          logging: false,
+          scrollX: 0,
+          scrollY: 0
+        },
+        jsPDF: {
+          unit: "mm",
+          format: "a4",
+          orientation: "portrait",
+          compress: true
+        },
+        pagebreak: {
+          mode: ["css", "legacy"],
+          before: ".print-page:not(:first-child)"
+        }
+      })
+      .from(renderHost)
+      .save();
+  } finally {
+    renderHost.remove();
+    printStyles.remove();
   }
 }
 
@@ -1531,6 +1594,15 @@ function buildPrintableDocument(pages, exportDate, title) {
     .total-value {
       direction: ltr;
       display: inline-block;
+    }
+
+    .pdf-render-host {
+      position: fixed;
+      top: 0;
+      left: -10000px;
+      width: 210mm;
+      background: #ffffff;
+      z-index: -1;
     }
 
     @media screen {
