@@ -1028,6 +1028,11 @@ body.is-generating-pdf .pdf-export-container {
 
 
 /* Direct A4 PDF download */
+.pdf-render-host .print-page {
+  margin: 0;
+  box-shadow: none;
+}
+
 .pdf-download-btn {
   display: inline-flex;
   align-items: center;
