@@ -1025,3 +1025,57 @@ body.is-generating-pdf .pdf-export-container {
 .preview-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 @media (min-width: 760px) { .salesman-field { grid-column: span 2; } }
 @media (max-width: 620px) { .preview-actions, .preview-actions .btn { width: 100%; } .active-filters-bar { align-items: flex-start; flex-direction: column; } }
+
+
+/* Direct A4 PDF download */
+.pdf-download-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 190px;
+  background: linear-gradient(135deg, #0b8f8f, #067272);
+  border-color: transparent;
+  box-shadow: 0 10px 24px rgba(9, 153, 153, 0.24);
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.pdf-download-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(9, 153, 153, 0.32);
+  filter: saturate(1.08);
+}
+
+.pdf-download-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.pdf-download-btn svg {
+  flex: 0 0 auto;
+}
+
+.pdf-download-btn.is-loading {
+  cursor: wait;
+}
+
+.btn-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: pdf-button-spin 700ms linear infinite;
+}
+
+@keyframes pdf-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .pdf-download-btn {
+    width: 100%;
+    min-width: 0;
+  }
+}
