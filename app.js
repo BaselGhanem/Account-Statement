@@ -1466,17 +1466,27 @@ function buildPrintableDocument(pages, exportDate, title) {
     }
 
     .statement-header {
+      display: block;
+      width: 100%;
+      flex: none;
       padding: 8mm 8mm 5mm;
       border-bottom: 1px solid #d8e3e4;
       background: linear-gradient(135deg, #f5fbfb, #ffffff);
+      direction: rtl;
     }
 
     .title-row {
       display: flex;
+      width: 100%;
       align-items: flex-start;
       justify-content: space-between;
       gap: 8mm;
       margin-bottom: 6mm;
+    }
+
+    .title-row > div:first-child {
+      min-width: 45mm;
+      flex: 1;
     }
 
     .title-row h1 {
@@ -1485,6 +1495,7 @@ function buildPrintableDocument(pages, exportDate, title) {
       font-size: 22px;
       line-height: 1.2;
       font-weight: 900;
+      white-space: nowrap;
     }
 
     .title-row p {
@@ -1507,8 +1518,10 @@ function buildPrintableDocument(pages, exportDate, title) {
 
     .meta-grid {
       display: grid;
-      grid-template-columns: 1.35fr 0.75fr 1fr 0.85fr;
+      width: 100%;
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 0.75fr);
       gap: 3mm;
+      direction: rtl;
     }
 
     .meta-box {
