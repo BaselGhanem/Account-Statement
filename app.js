@@ -1273,8 +1273,8 @@ async function exportPdf() {
     return;
   }
 
-  if (typeof html2pdf === "undefined") {
-    showStatus("error", "مكتبة إنشاء PDF غير محملة. تحقق من اتصال الإنترنت ثم أعد المحاولة.");
+  if (typeof html2canvas === "undefined" || !window.jspdf || typeof window.jspdf.jsPDF !== "function") {
+    showStatus("error", "مكتبات إنشاء PDF غير محملة. تحقق من اتصال الإنترنت ثم أعد المحاولة.");
     return;
   }
 
@@ -1318,32 +1318,46 @@ async function downloadGroupsPdf(groups, filename) {
   try {
     await waitForRender();
 
-    await html2pdf()
-      .set({
-        margin: 0,
-        filename,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: "#ffffff",
-          logging: false,
-          scrollX: 0,
-          scrollY: 0
-        },
-        jsPDF: {
-          unit: "mm",
-          format: "a4",
-          orientation: "portrait",
-          compress: true
-        },
-        pagebreak: {
-          mode: ["css", "legacy"],
-          before: ".print-page:not(:first-child)"
-        }
-      })
-      .from(renderHost)
-      .save();
+    const pageElements = [...renderHost.querySelectorAll(".print-page")];
+    if (!pageElements.length) {
+      throw new Error("لا توجد صفحات قابلة للتصدير.");
+    }
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({
+      unit: "mm",
+      format: "a4",
+      orientation: "portrait",
+      compress: true
+    });
+
+    for (let index = 0; index < pageElements.length; index += 1) {
+      const canvas = await html2canvas(pageElements[index], {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: pageElements[index].scrollWidth,
+        windowHeight: pageElements[index].scrollHeight
+      });
+
+      if (!canvas.width || !canvas.height) {
+        throw new Error(`تعذر رسم صفحة PDF رقم ${index + 1}.`);
+      }
+
+      if (index > 0) {
+        pdf.addPage("a4", "portrait");
+      }
+
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.96), "JPEG", 0, 0, 210, 297, undefined, "FAST");
+
+      canvas.width = 1;
+      canvas.height = 1;
+    }
+
+    pdf.save(filename);
   } finally {
     renderHost.remove();
     printStyles.remove();
@@ -1597,12 +1611,13 @@ function buildPrintableDocument(pages, exportDate, title) {
     }
 
     .pdf-render-host {
-      position: fixed;
+      position: absolute;
       top: 0;
-      left: -10000px;
+      left: 0;
       width: 210mm;
       background: #ffffff;
-      z-index: -1;
+      z-index: 2147483647;
+      pointer-events: none;
     }
 
     @media screen {
