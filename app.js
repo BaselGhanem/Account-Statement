@@ -151,6 +151,11 @@ function cacheUi() {
   ui.customerTotal = document.getElementById("customerTotal");
   ui.exportPdfBtn = document.getElementById("exportPdfBtn");
   ui.printCurrentBtn = document.getElementById("printCurrentBtn");
+
+  ui.loadingOverlay = document.getElementById("loadingOverlay");
+  ui.loadingTitle = document.getElementById("loadingTitle");
+  ui.loadingMessage = document.getElementById("loadingMessage");
+  ui.loadingCore = ui.loadingOverlay ? ui.loadingOverlay.querySelector(".loading-core") : null;
 }
 
 function bindEvents() {
@@ -278,6 +283,7 @@ function handleFile(file) {
   resetDataOnly();
   state.fileName = file.name;
   showStatus("warning", "جاري قراءة الملف...");
+  showLoading("جاري تحميل ملف Excel", `يتم الآن قراءة وتحليل ${file.name}`, "XLS");
 
   const reader = new FileReader();
 
@@ -332,10 +338,13 @@ function handleFile(file) {
       showStatus("error", error.message || "تعذر قراءة ملف Excel.");
       renderValidation();
       renderPreview();
+    } finally {
+      hideLoading();
     }
   };
 
   reader.onerror = () => {
+    hideLoading();
     showStatus("error", "تعذر قراءة الملف من الجهاز.");
   };
 
@@ -1285,6 +1294,11 @@ async function exportPdf() {
     ui.exportPdfBtn.classList.add("is-loading");
     ui.exportPdfBtn.innerHTML = `<span class="btn-spinner" aria-hidden="true"></span><span>جاري تجهيز PDF...</span>`;
     showStatus("warning", "جاري تجهيز ملف PDF بحجم A4...");
+    showLoading(
+      "جاري إنشاء ملف PDF",
+      `يتم تجهيز ${formatInteger(buildPdfPages(groups).length)} صفحة بحجم A4، يرجى الانتظار.`,
+      "PDF"
+    );
 
     await downloadGroupsPdf(groups, buildPdfFilename());
 
@@ -1293,6 +1307,7 @@ async function exportPdf() {
     console.error(error);
     showStatus("error", error.message || "تعذر إنشاء ملف PDF.");
   } finally {
+    hideLoading();
     ui.exportPdfBtn.innerHTML = originalLabel;
     ui.exportPdfBtn.classList.remove("is-loading");
     ui.exportPdfBtn.disabled = !state.currentGroups.length;
@@ -1919,6 +1934,26 @@ function showStatus(type, message) {
   ui.statusMessage.classList.remove("is-hidden", "success", "error", "warning");
   ui.statusMessage.classList.add(type);
   ui.statusMessage.textContent = message;
+}
+
+function showLoading(title, message, coreLabel) {
+  if (!ui.loadingOverlay) return;
+
+  ui.loadingTitle.textContent = title;
+  ui.loadingMessage.textContent = message;
+  if (ui.loadingCore) ui.loadingCore.textContent = coreLabel;
+
+  ui.loadingOverlay.classList.add("is-visible");
+  ui.loadingOverlay.setAttribute("aria-hidden", "false");
+  document.body.classList.add("is-busy");
+}
+
+function hideLoading() {
+  if (!ui.loadingOverlay) return;
+
+  ui.loadingOverlay.classList.remove("is-visible");
+  ui.loadingOverlay.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("is-busy");
 }
 
 function waitForRender() {
