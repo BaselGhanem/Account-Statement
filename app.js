@@ -1357,7 +1357,20 @@ async function downloadGroupsPdf(groups, filename) {
       canvas.height = 1;
     }
 
-    pdf.save(filename);
+    const pdfBlob = pdf.output("blob");
+    const downloadUrl = URL.createObjectURL(pdfBlob);
+    const downloadLink = document.createElement("a");
+
+    downloadLink.href = downloadUrl;
+    downloadLink.download = filename;
+    downloadLink.style.display = "none";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    downloadLink.remove();
+
+    window.setTimeout(() => {
+      URL.revokeObjectURL(downloadUrl);
+    }, 60000);
   } finally {
     renderHost.remove();
     printStyles.remove();
